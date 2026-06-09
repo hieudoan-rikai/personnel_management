@@ -1,0 +1,263 @@
+﻿@model IEnumerable<EmployeeManagement.Models.Employee>
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Quản lý đăng ký nhân viên</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body class="container mt-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>社員登録 - QUẢN LÝ ĐĂNG KÝ NHÂN VIÊN</h2>
+        <div>
+            <button class="btn btn-primary" id="btnAddNew">Thêm mới nhân viên</button>
+            <a href="@Url.Action("ExportExcel", "Employee")" class="btn btn-success">Xuất báo cáo Excel</a>
+        </div>
+    </div>
+
+    <div id="serverMessage"></div>
+
+    <table class="table table-bordered table-striped" id="employeeTable">
+        <thead class="thead-dark">
+            <tr>
+                <th>Mã NV</th>
+                <th>Họ Tên</th>
+                <th>Phòng Ban</th>
+                <th>Ngày Sinh</th>
+                <th class="text-center" style="width: 150px;">Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr data-id="@item.Id">
+                    <td class="emp-code">@item.EmployeeCode</td>
+                    <td class="emp-fullname">@item.FullName</td>
+                    <td class="emp-department">@item.Department</td>
+                    <td class="emp-birthdate">@item.DateOfBirth.ToString("dd/MM/yyyy")</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-warning btn-edit" data-id="@item.Id"><i class="fas fa-edit"></i> Sửa</button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-id="@item.Id"><i class="fas fa-trash"></i> Xóa</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Đăng ký nhân viên mới</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="employeeForm">
+                        <input type="hidden" id="txtId" value="0" />
+
+                        <div class="form-group">
+                            <label>Mã Nhân Viên</label>
+                            <input type="text" id="txtEmpCode" class="form-control" />
+                            <small id="errorEmployeeCode" class="text-danger"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Họ và Tên</label>
+                            <input type="text" id="txtFullName" class="form-control" />
+                            <small id="errorFullName" class="text-danger"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Phòng Ban</label>
+                            <input type="text" id="txtDepartment" class="form-control" />
+                            <small id="errorDepartment" class="text-danger"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Ngày Sinh</label>
+                            <input type="date" id="txtBirthDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                            <small id="errorDateOfBirth" class="text-danger"></small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveEmployee">Lưu lại</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            
+            $("#btnAddNew").click(function() {
+                $("#employeeForm")[0].reset();
+                $("#txtId").val("0");
+                $(".text-danger").text("");
+                $("#modalTitle").text("Đăng ký nhân viên mới");
+                $("#employeeModal").modal('show');
+            });
+
+            $("#btnSaveEmployee").click(function () {
+                var employeeData = {
+                    Id: parseInt($("#txtId").val()) || 0,
+                    EmployeeCode: $("#txtEmpCode").val().trim(),
+                    FullName: $("#txtFullName").val().trim(),
+                    Department: $("#txtDepartment").val().trim(),
+                    DateOfBirth: $("#txtBirthDate").val()
+                };
+
+                $(".text-danger").text("");
+                var isValid = true;
+
+                if (employeeData.EmployeeCode === "") {
+                    $("#errorEmployeeCode").text("Mã nhân viên không được để trống");
+                    isValid = false;
+                }
+                if (employeeData.FullName === "") {
+                    $("#errorFullName").text("Họ tên không được để trống");
+                    isValid = false;
+                }
+                if (employeeData.Department === "") {
+                    $("#errorDepartment").text("Phòng ban không được để trống");
+                    isValid = false;
+                }
+                if (employeeData.DateOfBirth === "") {
+                    $("#errorDateOfBirth").text("Ngày sinh không được để trống");
+                    isValid = false;
+                } else {
+                    var birthDate = new Date(employeeData.DateOfBirth);
+                    var today = new Date();
+
+                    if (birthDate > today) {
+                        $("#errorDateOfBirth").text("Ngày sinh không được vượt quá hiện tại");
+                        isValid = false;
+                    }
+
+                    var age = today.getFullYear() - birthDate.getFullYear();
+                    var monthDiff = today.getMonth() - birthDate.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+
+                    if (age < 18) {
+                        $("#errorDateOfBirth").text("Nhân viên phải đủ 18 tuổi");
+                        isValid = false;
+                    }
+                }
+
+                if (!isValid) return;
+
+                var isEdit = employeeData.Id > 0;
+                var urlAction = isEdit ? '@Url.Action("Edit", "Employee")' : '@Url.Action("Create", "Employee")';
+
+                $.ajax({
+                    url: urlAction,
+                    type: 'POST',
+                    data: JSON.stringify(employeeData),
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.success) {
+                            if (isEdit) {
+                                var $row = $("tr[data-id='" + response.data.Id + "']");
+                                $row.find(".emp-code").text(response.data.EmployeeCode);
+                                $row.find(".emp-fullname").text(response.data.FullName);
+                                $row.find(".emp-department").text(response.data.Department);
+                                $row.find(".emp-birthdate").text(response.data.DateOfBirth);
+                                showServerMessage("Cập nhật thông tin nhân viên thành công!", "success");
+                            } else {
+                                var newRow = "<tr data-id='" + response.data.Id + "'>" +
+                                    "<td class='emp-code'>" + response.data.EmployeeCode + "</td>" +
+                                    "<td class='emp-fullname'>" + response.data.FullName + "</td>" +
+                                    "<td class='emp-department'>" + response.data.Department + "</td>" +
+                                    "<td class='emp-birthdate'>" + response.data.DateOfBirth + "</td>" +
+                                    "<td class='text-center'>" +
+                                        "<button class='btn btn-sm btn-warning btn-edit mr-1' data-id='" + response.data.Id + "'><i class='fas fa-edit'></i> Sửa</button>" +
+                                        "<button class='btn btn-sm btn-danger btn-delete' data-id='" + response.data.Id + "'><i class='fas fa-trash'></i> Xóa</button>" +
+                                    "</td>" +
+                                "</tr>";
+
+                                $("#employeeTable tbody").prepend(newRow);
+                                showServerMessage("Thêm nhân viên thành công!", "success");
+                            }
+
+                            $("#employeeModal").modal('hide');
+                        } else {
+                            alert("Lỗi: " + response.message);
+                        }
+                    },
+                    error: function (err) {
+                        showServerMessage("Có lỗi xảy ra trên hệ thống!", "danger");
+                        console.log(err);
+                    }
+                });
+            });
+
+            $(document).on("click", ".btn-edit", function() {
+                var id = $(this).data("id");
+                $(".text-danger").text("");
+
+                $.ajax({
+                    url: '@Url.Action("GetById", "Employee")',
+                    type: 'GET',
+                    data: { id: id },
+                    success: function(response) {
+                        if (response.success) {
+                            $("#txtId").val(response.data.Id);
+                            $("#txtEmpCode").val(response.data.EmployeeCode);
+                            $("#txtFullName").val(response.data.FullName);
+                            $("#txtDepartment").val(response.data.Department);
+                            $("#txtBirthDate").val(response.data.DateOfBirth);
+
+                            $("#modalTitle").text("Cập nhật thông tin nhân viên");
+                            $("#employeeModal").modal('show');
+                        } else {
+                            alert(response.message);
+                        }
+                    }
+                });
+            });
+
+            $(document).on("click", ".btn-delete", function() {
+                var id = $(this).data("id");
+                if (confirm("Bạn có chắc chắn muốn xóa nhân viên này không?")) {
+                    $.ajax({
+                        url: '@Url.Action("Delete", "Employee")',
+                        type: 'POST',
+                        data: JSON.stringify({ id: id }),
+                        contentType: 'application/json; charset=utf-8',
+                        success: function(response) {
+                            if (response.success) {
+                                $("tr[data-id='" + id + "']").remove();
+                                showServerMessage("Xóa nhân viên thành công!", "success");
+                            } else {
+                                alert("Xóa thất bại: " + response.message);
+                            }
+                        },
+                        error: function(err) {
+                            alert("Có lỗi xảy ra trong quá trình xóa!");
+                        }
+                    });
+                }
+            });
+
+            function showServerMessage(msg, type) {
+                $("#serverMessage").html(
+                    '<div class="alert alert-' + type + ' alert-dismissible fade show">' + msg + 
+                    '<button type="button" class="close" data-dismiss="alert">&times;</button></div>'
+                );
+            }
+        });
+    </script>
+</body>
+</html>

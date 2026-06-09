@@ -1,0 +1,140 @@
+﻿using EmployeeManagement.Models;
+using System;
+using System.Collections.Generic;
+using Npgsql;
+using System.Configuration;
+
+namespace EmployeeManagement.DataAccess
+{
+    public class EmployeeRepository
+    {
+        private readonly string _connectionString = ConfigurationManager.ConnectionStrings["PostgresConnection"].ConnectionString;
+
+        public List<Employee> GetAll()
+        {
+            var employees = new List<Employee>();
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = "SELECT id, employeecode, fullname, department, dateofbirth FROM Employees ORDER BY id DESC";
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    connection.Open();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            employees.Add(new Employee
+                            {
+                                Id = Convert.ToInt32(reader["id"]),
+                                EmployeeCode = reader["employeecode"].ToString(),
+                                FullName = reader["fullname"].ToString(),
+                                Department = reader["department"].ToString(),
+                                DateOfBirth = Convert.ToDateTime(reader["dateofbirth"])
+                            });
+                        }
+                    }
+                }
+            }
+            return employees;
+        }
+
+        public Employee GetById(int id)
+        {
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = "SELECT id, employeecode, fullname, department, dateofbirth FROM Employees WHERE id = @Id";
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+                    connection.Open();
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new Employee
+                            {
+                                Id = Convert.ToInt32(reader["id"]),
+                                EmployeeCode = reader["employeecode"].ToString(),
+                                FullName = reader["fullname"].ToString(),
+                                Department = reader["department"].ToString(),
+                                DateOfBirth = Convert.ToDateTime(reader["dateofbirth"])
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        public int Insert(Employee employee)
+        {
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = @"INSERT INTO Employees (employeecode, fullname, department, dateofbirth) 
+                               VALUES (@EmployeeCode, @FullName, @Department, @DateOfBirth) RETURNING id;";
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@EmployeeCode", employee.EmployeeCode);
+                    command.Parameters.AddWithValue("@FullName", employee.FullName);
+                    command.Parameters.AddWithValue("@Department", employee.Department);
+                    command.Parameters.AddWithValue("@DateOfBirth", employee.DateOfBirth);
+
+                    connection.Open();
+                    return Convert.ToInt32(command.ExecuteScalar());
+                }
+            }
+        }
+
+        public bool Update(Employee employee)
+        {
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = @"UPDATE Employees 
+                               SET employeecode = @EmployeeCode, fullname = @FullName, department = @Department, dateofbirth = @DateOfBirth 
+                               WHERE id = @Id";
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", employee.Id);
+                    command.Parameters.AddWithValue("@EmployeeCode", employee.EmployeeCode);
+                    command.Parameters.AddWithValue("@FullName", employee.FullName);
+                    command.Parameters.AddWithValue("@Department", employee.Department);
+                    command.Parameters.AddWithValue("@DateOfBirth", employee.DateOfBirth);
+
+                    connection.Open();
+                    return command.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+
+        public bool Delete(int id)
+        {
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = "DELETE FROM Employees WHERE id = @Id";
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+                    connection.Open();
+                    return command.ExecuteNonQuery() > 0;
+                }
+            }
+        }
+
+        public bool IsEmployeeCodeExists(string employeeCode, int excludeId = 0)
+        {
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = @"SELECT COUNT(*) FROM Employees WHERE employeecode = @EmployeeCode AND id != @ExcludeId";
+
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@EmployeeCode", employeeCode);
+                    command.Parameters.AddWithValue("@ExcludeId", excludeId);
+
+                    connection.Open();
+                    return Convert.ToInt32(command.ExecuteScalar()) > 0;
+                }
+            }
+        }
+    }
+}
