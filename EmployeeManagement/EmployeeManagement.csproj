@@ -282,11 +282,13 @@
     <Content Include="bin\x86\libSkiaSharp.dll" />
     <Content Include="bin\ZString.dll" />
     <Content Include="bin\ZString.xml" />
+    <Content Include="Content\employee.css" />
     <Content Include="Content\Site.css" />
     <Content Include="Global.asax" />
     <Content Include="obj\Debug\EmployeeManagement.csproj.FileListAbsolute.txt" />
     <Content Include="obj\Debug\EmployeeManagement.dll" />
     <Content Include="obj\Debug\EmployeeManagement.pdb" />
+    <Content Include="Scripts\employee.js" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>

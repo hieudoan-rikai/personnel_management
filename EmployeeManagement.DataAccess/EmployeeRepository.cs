@@ -15,7 +15,7 @@ namespace EmployeeManagement.DataAccess
             var employees = new List<Employee>();
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                string sql = "SELECT id, employeecode, fullname, department, dateofbirth FROM Employees ORDER BY id DESC";
+                string sql = "SELECT id, employeecode, fullname, department, dateofbirth FROM Employees WHERE department != 'DELETED_DELETED' ORDER BY id DESC";
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
                     connection.Open();
@@ -110,7 +110,7 @@ namespace EmployeeManagement.DataAccess
         {
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                string sql = "DELETE FROM Employees WHERE id = @Id";
+                string sql = "UPDATE Employees SET department = 'DELETED_DELETED' WHERE id = @Id";
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@Id", id);
@@ -133,6 +133,20 @@ namespace EmployeeManagement.DataAccess
 
                     connection.Open();
                     return Convert.ToInt32(command.ExecuteScalar()) > 0;
+                }
+            }
+        }
+
+        public string GetMaxEmployeeCode()
+        {
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = "SELECT employeecode FROM Employees WHERE employeecode LIKE 'NV%' ORDER BY CAST(SUBSTRING(employeecode, 3) AS INTEGER) DESC LIMIT 1";
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    connection.Open();
+                    var result = command.ExecuteScalar();
+                    return result?.ToString() ?? string.Empty;
                 }
             }
         }

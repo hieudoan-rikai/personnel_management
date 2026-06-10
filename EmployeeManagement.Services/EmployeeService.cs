@@ -127,5 +127,30 @@ namespace EmployeeManagement.Services
             else
                 cell.SetCellValue(value?.ToString() ?? "");
         }
+
+        public string GenerateNewEmployeeCode()
+        {
+            string maxCode = _employeeRepository.GetMaxEmployeeCode();
+
+            if (string.IsNullOrEmpty(maxCode) || maxCode.Length < 3)
+            {
+                return "NV001"; 
+            }
+
+            try
+            {
+                string numberPart = maxCode.Substring(2);
+                if (int.TryParse(numberPart, out int currentNumber))
+                {
+                    int nextNumber = currentNumber + 1;
+                    return "NV" + nextNumber.ToString("D3");
+                }
+            }
+            catch
+            {
+            }
+
+            return "NV001";
+        }
     }
 }

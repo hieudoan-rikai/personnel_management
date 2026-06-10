@@ -136,5 +136,19 @@ namespace EmployeeManagement.Controllers
                 return Content($"Có lỗi xảy ra trong quá trình xuất file Excel: {exception.Message}");
             }
         }
+
+        [HttpGet]
+        public JsonResult GetNextEmployeeCode()
+        {
+            try
+            {
+                var nextCode = _employeeService.GenerateNewEmployeeCode();
+                return Json(new { success = true, code = nextCode }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception exception)
+            {
+                return Json(new { success = false, message = exception.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
     }
 }
