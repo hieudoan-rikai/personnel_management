@@ -6,6 +6,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <title>Quản lý đăng ký nhân viên</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
@@ -22,7 +23,7 @@
         </div>
     </div>
 
-    <div id="serverMessage"></div>
+    <div id="serverMessage" class="toast-container"></div>
 
     <table class="table table-bordered table-striped" id="employeeTable">
         <thead class="thead-dark">
@@ -30,6 +31,7 @@
                 <th>Mã NV</th>
                 <th>Họ Tên</th>
                 <th>Phòng Ban</th>
+                <th>Email</th>
                 <th>Ngày Sinh</th>
                 <th class="text-center" style="width: 180px;">Hành động</th>
             </tr>
@@ -41,6 +43,7 @@
                     <td class="emp-code">@item.EmployeeCode</td>
                     <td class="emp-fullname">@item.FullName</td>
                     <td class="emp-department">@item.Department</td>
+                    <td class="emp-email">@item.Email</td>
                     <td class="emp-birthdate">@item.DateOfBirth.ToString("dd/MM/yyyy")</td>
                     <td class="text-center">
                         <div class="d-flex justify-content-center align-items-center style-buttons-row">
@@ -68,17 +71,22 @@
 
                         <div class="form-group">
                             <label>Mã Nhân Viên</label>
-                            <input type="text" id="txtEmpCode" class="form-control" />
+                            <input type="text" id="txtEmpCode" class="form-control" minlength="3" maxlength="50" autocomplete="off" />
                             <small id="errorEmployeeCode" class="text-danger"></small>
                         </div>
                         <div class="form-group">
                             <label>Họ và Tên</label>
-                            <input type="text" id="txtFullName" class="form-control" />
+                            <input type="text" id="txtFullName" class="form-control" minlength="10" maxlength="100" autocomplete="off" />
                             <small id="errorFullName" class="text-danger"></small>
                         </div>
                         <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="txtEmail" class="form-control" maxlength="100" autocomplete="off" />
+                            <small id="errorEmail" class="text-danger"></small>
+                        </div>
+                        <div class="form-group">
                             <label>Phòng Ban</label>
-                            <input type="text" id="txtDepartment" class="form-control" />
+                            <input type="text" id="txtDepartment" class="form-control" minlength="2" maxlength="100" autocomplete="off" />
                             <small id="errorDepartment" class="text-danger"></small>
                         </div>
                         <div class="form-group">

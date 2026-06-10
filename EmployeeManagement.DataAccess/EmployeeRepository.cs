@@ -15,7 +15,7 @@ namespace EmployeeManagement.DataAccess
             var employees = new List<Employee>();
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                string sql = "SELECT id, employeecode, fullname, department, dateofbirth FROM Employees WHERE department != 'DELETED_DELETED' ORDER BY id DESC";
+                string sql = "SELECT id, employeecode, fullname, email, department, dateofbirth FROM Employees WHERE department != 'DELETED_DELETED' ORDER BY id DESC";
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
                     connection.Open();
@@ -28,6 +28,7 @@ namespace EmployeeManagement.DataAccess
                                 Id = Convert.ToInt32(reader["id"]),
                                 EmployeeCode = reader["employeecode"].ToString(),
                                 FullName = reader["fullname"].ToString(),
+                                Email = reader["email"].ToString(),
                                 Department = reader["department"].ToString(),
                                 DateOfBirth = Convert.ToDateTime(reader["dateofbirth"])
                             });
@@ -42,7 +43,7 @@ namespace EmployeeManagement.DataAccess
         {
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                string sql = "SELECT id, employeecode, fullname, department, dateofbirth FROM Employees WHERE id = @Id";
+                string sql = "SELECT id, employeecode, fullname, email, department, dateofbirth FROM Employees WHERE id = @Id AND department != 'DELETED_DELETED'";
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@Id", id);
@@ -56,6 +57,7 @@ namespace EmployeeManagement.DataAccess
                                 Id = Convert.ToInt32(reader["id"]),
                                 EmployeeCode = reader["employeecode"].ToString(),
                                 FullName = reader["fullname"].ToString(),
+                                Email = reader["email"].ToString(),
                                 Department = reader["department"].ToString(),
                                 DateOfBirth = Convert.ToDateTime(reader["dateofbirth"])
                             };
@@ -70,12 +72,13 @@ namespace EmployeeManagement.DataAccess
         {
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                string sql = @"INSERT INTO Employees (employeecode, fullname, department, dateofbirth) 
-                               VALUES (@EmployeeCode, @FullName, @Department, @DateOfBirth) RETURNING id;";
+                string sql = @"INSERT INTO Employees (employeecode, fullname, email, department, dateofbirth) 
+                               VALUES (@EmployeeCode, @FullName, @Email, @Department, @DateOfBirth) RETURNING id;";
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@EmployeeCode", employee.EmployeeCode);
                     command.Parameters.AddWithValue("@FullName", employee.FullName);
+                    command.Parameters.AddWithValue("@Email", employee.Email);
                     command.Parameters.AddWithValue("@Department", employee.Department);
                     command.Parameters.AddWithValue("@DateOfBirth", employee.DateOfBirth);
 
@@ -90,13 +93,14 @@ namespace EmployeeManagement.DataAccess
             using (var connection = new NpgsqlConnection(_connectionString))
             {
                 string sql = @"UPDATE Employees 
-                               SET employeecode = @EmployeeCode, fullname = @FullName, department = @Department, dateofbirth = @DateOfBirth 
-                               WHERE id = @Id";
+                               SET employeecode = @EmployeeCode, fullname = @FullName, email = @Email, department = @Department, dateofbirth = @DateOfBirth 
+                               WHERE id = @Id AND department != 'DELETED_DELETED'";
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@Id", employee.Id);
                     command.Parameters.AddWithValue("@EmployeeCode", employee.EmployeeCode);
                     command.Parameters.AddWithValue("@FullName", employee.FullName);
+                    command.Parameters.AddWithValue("@Email", employee.Email);
                     command.Parameters.AddWithValue("@Department", employee.Department);
                     command.Parameters.AddWithValue("@DateOfBirth", employee.DateOfBirth);
 
@@ -110,7 +114,7 @@ namespace EmployeeManagement.DataAccess
         {
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                string sql = "UPDATE Employees SET department = 'DELETED_DELETED' WHERE id = @Id";
+                string sql = "UPDATE Employees SET department = 'DELETED_DELETED' WHERE id = @Id AND department != 'DELETED_DELETED'";
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
                     command.Parameters.AddWithValue("@Id", id);
@@ -124,7 +128,10 @@ namespace EmployeeManagement.DataAccess
         {
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                string sql = @"SELECT COUNT(*) FROM Employees WHERE employeecode = @EmployeeCode AND id != @ExcludeId";
+                string sql = @"SELECT COUNT(*) FROM Employees
+                               WHERE LOWER(employeecode) = LOWER(@EmployeeCode)
+                               AND id != @ExcludeId
+                               AND department != 'DELETED_DELETED'";
 
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
@@ -137,16 +144,54 @@ namespace EmployeeManagement.DataAccess
             }
         }
 
+        public bool IsEmailExists(string email, int excludeId = 0)
+        {
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = @"SELECT COUNT(*) FROM Employees
+                               WHERE LOWER(email) = LOWER(@Email)
+                               AND id != @ExcludeId
+                               AND department != 'DELETED_DELETED'";
+
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Email", email);
+                    command.Parameters.AddWithValue("@ExcludeId", excludeId);
+
+                    connection.Open();
+                    return Convert.ToInt32(command.ExecuteScalar()) > 0;
+                }
+            }
+        }
+
         public string GetMaxEmployeeCode()
         {
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                string sql = "SELECT employeecode FROM Employees WHERE employeecode LIKE 'NV%' ORDER BY CAST(SUBSTRING(employeecode, 3) AS INTEGER) DESC LIMIT 1";
+                string sql = @"SELECT employeecode FROM Employees
+                               WHERE employeecode LIKE 'NV%'
+                               AND department != 'DELETED_DELETED'
+                               ORDER BY CAST(SUBSTRING(employeecode, 3) AS INTEGER) DESC LIMIT 1";
                 using (var command = new NpgsqlCommand(sql, connection))
                 {
                     connection.Open();
                     var result = command.ExecuteScalar();
                     return result?.ToString() ?? string.Empty;
+                }
+            }
+        }
+
+        public bool ExistsActive(int id)
+        {
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                string sql = "SELECT COUNT(*) FROM Employees WHERE id = @Id AND department != 'DELETED_DELETED'";
+
+                using (var command = new NpgsqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+                    connection.Open();
+                    return Convert.ToInt32(command.ExecuteScalar()) > 0;
                 }
             }
         }

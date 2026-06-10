@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Web.Mvc;
+using System.Linq;
 using EmployeeManagement.Models;
 using EmployeeManagement.Services;
 
@@ -29,7 +30,10 @@ namespace EmployeeManagement.Controllers
             try
             {
                 if (employee == null)
-                    return Json(new { success = false, message = "Dữ liệu gửi lên không hợp lệ hoặc trống!" });
+                    return Json(new { success = false, message = "Dữ liệu gửi lên không hợp lệ hoặc trống." });
+
+                if (!ModelState.IsValid)
+                    return Json(new { success = false, message = GetFirstModelError() });
 
                 int newId = _employeeService.AddEmployee(employee);
                 employee.Id = newId;
@@ -42,6 +46,7 @@ namespace EmployeeManagement.Controllers
                         Id = employee.Id,
                         EmployeeCode = employee.EmployeeCode,
                         FullName = employee.FullName,
+                        Email = employee.Email,
                         Department = employee.Department,
                         DateOfBirth = employee.DateOfBirth.ToString("dd/MM/yyyy")
                     }
@@ -69,6 +74,7 @@ namespace EmployeeManagement.Controllers
                         Id = employee.Id,
                         EmployeeCode = employee.EmployeeCode,
                         FullName = employee.FullName,
+                        Email = employee.Email,
                         Department = employee.Department,
                         DateOfBirth = employee.DateOfBirth.ToString("yyyy-MM-dd")
                     }
@@ -85,7 +91,10 @@ namespace EmployeeManagement.Controllers
         {
             try
             {
-                if (employee == null) return Json(new { success = false, message = "Dữ liệu trống!" });
+                if (employee == null) return Json(new { success = false, message = "Dữ liệu gửi lên không hợp lệ hoặc trống." });
+
+                if (!ModelState.IsValid)
+                    return Json(new { success = false, message = GetFirstModelError() });
 
                 _employeeService.UpdateEmployee(employee);
                 return Json(new
@@ -96,6 +105,7 @@ namespace EmployeeManagement.Controllers
                         Id = employee.Id,
                         EmployeeCode = employee.EmployeeCode,
                         FullName = employee.FullName,
+                        Email = employee.Email,
                         Department = employee.Department,
                         DateOfBirth = employee.DateOfBirth.ToString("dd/MM/yyyy")
                     }
@@ -149,6 +159,15 @@ namespace EmployeeManagement.Controllers
             {
                 return Json(new { success = false, message = exception.Message }, JsonRequestBehavior.AllowGet);
             }
+        }
+
+        private string GetFirstModelError()
+        {
+            return ModelState.Values
+                .SelectMany(value => value.Errors)
+                .Select(error => error.ErrorMessage)
+                .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message))
+                ?? "Dữ liệu nhập chưa hợp lệ.";
         }
     }
 }
